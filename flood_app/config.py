@@ -15,8 +15,22 @@ def _normalize_database_url(database_url: str | None) -> str | None:
     return database_url
 
 
+def _get_secret_key() -> str:
+    _secret = os.getenv("SECRET_KEY")
+    if not _secret:
+        import secrets
+        import warnings
+        warnings.warn(
+            "SECRET_KEY env var is not set. Using a temporary random key. "
+            "All sessions will be invalidated on restart.",
+            stacklevel=1,
+        )
+        _secret = secrets.token_hex(32)
+    return _secret
+
+
 class Config:
-    SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key")
+    SECRET_KEY = _get_secret_key()
     DB_PATH = os.getenv("DB_PATH", str(BASE_DIR / "shelter.db"))
     DATABASE_URL = _normalize_database_url(os.getenv("DATABASE_URL"))
     SQLALCHEMY_DATABASE_URI = DATABASE_URL or f"sqlite:///{Path(DB_PATH)}"

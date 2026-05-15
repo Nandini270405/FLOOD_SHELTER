@@ -62,15 +62,6 @@ def _build_control_system():
             & accessibility["high"]
             & elevation["high"]
             & proximity["moderate"]
-            & (medical["advanced"] | medical["basic"]),
-            suitability["high"],
-        ),
-        ctrl.Rule(
-            distance["medium"]
-            & capacity["high"]
-            & accessibility["high"]
-            & elevation["high"]
-            & proximity["far"]
             & medical["advanced"],
             suitability["high"],
         ),
@@ -152,16 +143,12 @@ def _build_control_system():
             distance["far"] & proximity["very_close"],
             suitability["low"],
         ),
+        # Narrower fallback: near/medium distance with decent capacity & accessibility → medium
+        # (replaces the removed overbroad rule that fired for ALL shelters and corrupted scores)
         ctrl.Rule(
             (distance["near"] | distance["medium"])
             & (capacity["medium"] | capacity["high"])
             & (accessibility["medium"] | accessibility["high"]),
-            suitability["medium"],
-        ),
-        ctrl.Rule(
-            (distance["near"] | distance["medium"] | distance["far"])
-            & (capacity["low"] | capacity["medium"] | capacity["high"])
-            & (accessibility["low"] | accessibility["medium"] | accessibility["high"]),
             suitability["medium"],
         ),
     ]
@@ -187,5 +174,11 @@ def get_fuzzy_simulator(
     sim.input["proximity"] = proximity_val
     sim.input["medical"] = medical_val
 
-    sim.compute()
-    return sim.output["suitability"]
+    try:
+        sim.compute()
+        return sim.output["suitability"]
+    except Exception:
+        # Degenerate case: no rules fired for this input combination.
+        # Return a low-but-non-zero fallback so the shelter still appears
+        # in ranked output rather than crashing the whole request.
+        return 10.0

@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+
+# Database
+*.db
+*.sqlite3
+
+# Secrets & env
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Project-specific working files
+FLOOD_SHELTER.txt
+FLOOD_SHELTER_FIXES.txt
+flood_shelter_fixes/
+
+# Vercel
+.vercel/

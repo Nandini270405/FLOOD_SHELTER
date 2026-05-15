@@ -30,10 +30,14 @@ def _read_rows(csv_path: Path) -> list[tuple]:
 
         rows = []
         for line_number, row in enumerate(reader, start=2):
+            # FIX: check name BEFORE appending so bad rows never enter the list
+            name = row["name"].strip()
+            if not name:
+                raise ValueError(f"Missing shelter name on CSV line {line_number}.")
             try:
                 rows.append(
                     (
-                        row["name"].strip(),
+                        name,
                         int(row["capacity"]),
                         int(row["available_beds"]),
                         float(row["distance"]),
@@ -47,9 +51,6 @@ def _read_rows(csv_path: Path) -> list[tuple]:
                 )
             except (TypeError, ValueError) as exc:
                 raise ValueError(f"Invalid data on CSV line {line_number}: {exc}") from exc
-
-            if not rows[-1][0]:
-                raise ValueError(f"Missing shelter name on CSV line {line_number}.")
 
         if not rows:
             raise ValueError("CSV file contains no shelter rows.")

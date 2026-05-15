@@ -57,7 +57,9 @@ class RecommendationService:
             elevation_score = ELEVATION_MAP.get(elevation_level, 5)
             proximity_score = PROXIMITY_MAP.get(proximity_to_water, 5)
             medical_score = MEDICAL_MAP.get(medical_facility, 5)
-            usable_capacity = min(max(row["available_beds"], num_people), 100)
+            # FIX: clamp available_beds to [0, 100]; do NOT mix in num_people
+            # (using max(beds, num_people) inflated scores when beds < people)
+            usable_capacity = min(max(row["available_beds"], 0), 100)
             score = float(
                 get_fuzzy_simulator(
                     usable_capacity,

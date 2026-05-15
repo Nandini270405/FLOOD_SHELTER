@@ -18,12 +18,17 @@ def recommend():
     except (TypeError, ValueError):
         return jsonify({"error": "num_people must be an integer >= 1"}), 400
 
-    data = _build_service().recommend(
-        num_people=num_people,
-        distance_level=payload.get("distance_level", "medium"),
-        accessibility_required=payload.get("accessibility_required", "moderate"),
-        elevation_input=payload.get("elevation_input", "medium"),
-        proximity_input=payload.get("proximity_input", "moderate"),
-        medical_input=payload.get("medical_input", "basic"),
-    )
+    try:
+        data = _build_service().recommend(
+            num_people=num_people,
+            distance_level=payload.get("distance_level", "medium"),
+            accessibility_required=payload.get("accessibility_required", "moderate"),
+            elevation_input=payload.get("elevation_input", "medium"),
+            proximity_input=payload.get("proximity_input", "moderate"),
+            medical_input=payload.get("medical_input", "basic"),
+        )
+    except Exception as exc:
+        current_app.logger.exception("Recommendation error: %s", exc)
+        return jsonify({"error": "Failed to compute recommendations. Check server logs."}), 500
+
     return jsonify(data)

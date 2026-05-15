@@ -31,6 +31,7 @@ def recommend():
             "index.html",
             choices=CHOICES,
             data=None,
+            dataset_info=_build_service().get_dataset_info(),
             error="Enter a valid number of people (>= 1).",
         )
 
