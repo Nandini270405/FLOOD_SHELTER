@@ -365,22 +365,37 @@ async function fetchRecommendations(form) {
 
   setStatus("Recomputing fuzzy ranking...", "loading");
 
-  const response = await fetch("/api/recommend", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+  try {
+    const response = await fetch("/api/recommend", {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify(payload),
+    });
 
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.error || "Request failed.");
-  }
+    const contentType = response.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      const text = await response.text();
+      console.error("Non-JSON response received:", text);
+      throw new Error(`Server returned ${response.status} ${response.statusText} as HTML. Check server logs.`);
+    }
 
-  renderDashboard(data);
-  if (data.recommendations?.length) {
-    setStatus(`Updated ${data.recommendations.length} shelter recommendations.`, "idle");
-  } else {
-    setStatus("No shelters matched the current filters.", "idle");
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || "Request failed.");
+    }
+
+    renderDashboard(data);
+    if (data.recommendations?.length) {
+      setStatus(`Updated ${data.recommendations.length} shelter recommendations.`, "idle");
+    } else {
+      setStatus("No shelters matched the current filters.", "idle");
+    }
+  } catch (error) {
+    console.error("Recommendation error:", error);
+    setStatus(error.message, "error");
   }
 }
 

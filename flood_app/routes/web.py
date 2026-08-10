@@ -12,11 +12,20 @@ def _build_service():
 
 @web_bp.route("/", methods=["GET"])
 def home():
+    service = _build_service()
+    data = service.recommend(
+        num_people=1,
+        distance_level="medium",
+        accessibility_required="moderate",
+        elevation_input="medium",
+        proximity_input="moderate",
+        medical_input="basic",
+    )
     return render_template(
         "index.html",
         choices=CHOICES,
-        data=None,
-        dataset_info=_build_service().get_dataset_info(),
+        data=data,
+        dataset_info=data.get("dataset"),
         error=None,
     )
 

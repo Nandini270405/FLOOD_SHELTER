@@ -19,6 +19,11 @@ class ShelterRecord:
 
 
 if db is not None:
+    class AppMetadata(db.Model):
+        __tablename__ = "app_metadata"
+        key = db.Column(db.String(50), primary_key=True)
+        value = db.Column(db.String(255), nullable=False)
+
     class Shelter(db.Model):
         __tablename__ = "shelters"
 

@@ -9,6 +9,9 @@ from ..models import USER_ROLES, User
 
 class AuthService:
     def create_user(self, full_name: str, email: str, password: str, role: str = "citizen"):
+        if role not in USER_ROLES:
+            raise ValueError(f"Invalid role: {role}. Must be one of {USER_ROLES}")
+
         existing = User.query.filter_by(email=email).first()
         if existing is not None:
             raise ValueError("An account with this email already exists.")

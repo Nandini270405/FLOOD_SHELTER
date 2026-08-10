@@ -1,6 +1,7 @@
 from typing import Dict, List
 
-from membership_func import get_fuzzy_simulator
+import numpy as np
+from .fuzzy_engine import FuzzyRecommenderEngine
 
 from ..repositories.shelter_repository import ShelterRepository
 
@@ -15,6 +16,7 @@ ACCESS_RANK = {"difficult": 0, "moderate": 1, "easy": 2}
 class RecommendationService:
     def __init__(self, db_path: str):
         self.repository = ShelterRepository(db_path)
+        self.fuzzy_engine = FuzzyRecommenderEngine()
 
     def get_dataset_info(self) -> Dict:
         return self.repository.fetch_dataset_info()
@@ -53,21 +55,31 @@ class RecommendationService:
             proximity_to_water = row["proximity_to_water"].lower()
             medical_facility = row["medical_facility"].lower()
 
-            access_num = ACCESS_MAP.get(shelter_accessibility, 5)
-            elevation_score = ELEVATION_MAP.get(elevation_level, 5)
-            proximity_score = PROXIMITY_MAP.get(proximity_to_water, 5)
-            medical_score = MEDICAL_MAP.get(medical_facility, 5)
-            usable_capacity = min(max(row["available_beds"], num_people), 100)
-            score = float(
-                get_fuzzy_simulator(
+            access_num = int(np.clip(ACCESS_MAP.get(shelter_accessibility, 5), 0, 10))
+            elevation_score = int(np.clip(ELEVATION_MAP.get(elevation_level, 5), 0, 10))
+            proximity_score = int(np.clip(PROXIMITY_MAP.get(proximity_to_water, 5), 0, 10))
+            medical_score = int(np.clip(MEDICAL_MAP.get(medical_facility, 5), 0, 10))
+
+            # Universe for capacity is [0, 100], distance is [0, 20]
+            beds = row["available_beds"] if row["available_beds"] is not None else 0
+            usable_capacity = int(np.clip(min(max(beds, num_people), 100), 0, 100))
+            dist_val = float(np.clip(row["distance"] if row["distance"] is not None else 20, 0, 20))
+
+            try:
+                score_val = self.fuzzy_engine.compute_suitability(
                     usable_capacity,
-                    row["distance"],
+                    dist_val,
                     access_num,
                     elevation_score,
                     proximity_score,
                     medical_score,
                 )
-            )
+                score = float(score_val)
+                if np.isnan(score):
+                    score = 0.0
+            except Exception:
+                score = 0.0
+
             recommendations.append(
                 {
                     "name": row["name"],
@@ -103,11 +115,11 @@ class RecommendationService:
                 "medical_input": medical_input,
             },
             "inputs_numeric": {
-                "distance": DISTANCE_MAP.get(distance_level, 10),
-                "accessibility": desired_access_num,
-                "elevation": elevation_num,
-                "proximity": proximity_num,
-                "medical": medical_num,
+                "distance": float(DISTANCE_MAP.get(distance_level, 10)),
+                "accessibility": int(desired_access_num),
+                "elevation": int(elevation_num),
+                "proximity": int(proximity_num),
+                "medical": int(medical_num),
             },
             "recommendations": recommendations,
             "best": best,

@@ -3,98 +3,102 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Flood Shelter Intelligence</title>
+  <title>Flood Shelter Intelligence System</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
   <main class="page-shell">
+    <!-- Top Command Navigation & Auth Strip -->
     <section class="auth-strip">
-      {% if current_user %}
       <div class="auth-strip-card">
-        <div>
-          <strong>{{ current_user.full_name }}</strong>
-          <span class="auth-meta">{{ current_user.role|replace('_', ' ')|title }} | {{ current_user.email }}</span>
+        <div class="brand-badge">
+          <div class="brand-icon">🌊</div>
+          <div>
+            Flood Shelter Intelligence
+            <span class="auth-meta">Decision Support Dashboard</span>
+          </div>
         </div>
+
+        {% if current_user %}
         <div class="auth-actions">
+          <span class="meta-pill">👤 {{ current_user.full_name }} ({{ current_user.role|replace('_', ' ')|title }})</span>
           {% if current_user.role in ['admin', 'shelter_manager', 'response_officer'] %}
           <a class="btn btn-ghost btn-sm" href="{{ url_for('management_web.shelters') }}">Operations</a>
           {% endif %}
           {% if current_user.role in ['admin', 'response_officer'] %}
-          <a class="btn btn-ghost btn-sm" href="{{ url_for('management_web.audit_logs') }}">Audit</a>
+          <a class="btn btn-ghost btn-sm" href="{{ url_for('management_web.audit_logs') }}">Audit Logs</a>
           {% endif %}
           <a class="btn btn-ghost btn-sm" href="{{ url_for('auth.me') }}">Profile</a>
           <form method="post" action="{{ url_for('auth.logout') }}">
             <button class="btn btn-ghost btn-sm" type="submit">Logout</button>
           </form>
         </div>
-      </div>
-      {% else %}
-      <div class="auth-strip-card">
-        <div>
-          <strong>Authentication is now enabled.</strong>
-          <span class="auth-meta">Create an account to prepare for role-based access.</span>
-        </div>
+        {% else %}
         <div class="auth-actions">
+          <span class="auth-meta me-2">Role-Based Operations Ready</span>
           <a class="btn btn-ghost btn-sm" href="{{ url_for('auth.login') }}">Login</a>
           <a class="btn btn-signal btn-sm" href="{{ url_for('auth.signup') }}">Sign Up</a>
         </div>
+        {% endif %}
       </div>
-      {% endif %}
     </section>
 
+    <!-- Hero Emergency Banner -->
     <section class="hero-panel">
       <div class="hero-copy">
-        <p class="eyebrow mb-2">Flood Shelter Intelligence</p>
-        <h1 class="hero-title">A dynamic decision dashboard for safer evacuation planning.</h1>
+        <span class="eyebrow mb-2">⚡ Real-Time Emergency Command</span>
+        <h1 class="hero-title">Fuzzy logic shelter recommendation engine.</h1>
         <p class="hero-text mb-0">
-          Adjust live conditions, compare ranked shelters, and inspect map-based recommendations without reloading the page.
+          Rank the safest flood shelters dynamically using multi-attribute fuzzy inference: balancing travel distance, road accessibility, elevation risk, water proximity, and medical support.
         </p>
       </div>
       <div class="hero-pulse">
         <div class="pulse-orb"></div>
         <div class="pulse-card">
-          <span class="pulse-label">Engine</span>
-          <strong>Fuzzy Risk Scoring</strong>
-          <small>Distance, accessibility, terrain, water exposure, and medical support</small>
+          <span class="pulse-label">Fuzzy System Status</span>
+          <strong>Mamdani Inference Engine</strong>
+          <small>Evaluating 20+ Mamdani fuzzy rules for real-time suitability scoring (0 - 100)</small>
         </div>
       </div>
     </section>
 
+    <!-- Main Workspace Grid -->
     <section class="workspace-grid">
+      <!-- Controls & Filters Sidebar -->
       <aside class="control-panel">
         <div class="dataset-banner{% if dataset_info and dataset_info.is_demo %} is-demo{% else %} is-live{% endif %}">
-          <p class="dataset-title mb-1">
-            Data Source: {{ dataset_info.dataset_name if dataset_info else 'Unknown dataset' }}
-          </p>
-          <p class="dataset-text mb-0">
+          <div class="dataset-title mb-1">
+            📂 Data Source: {{ dataset_info.dataset_name if dataset_info else 'Built-in Shelters' }}
+          </div>
+          <div class="dataset-text">
             {% if dataset_info and dataset_info.is_demo %}
-            This app is currently using demo shelter records for portfolio/testing purposes, not verified official shelters.
+            Using built-in demo shelter coordinates for testing and demonstration.
             {% else %}
-            This app is using a custom shelter dataset. Verify the source and freshness before operational use.
+            Loaded custom shelter dataset. Verify dataset freshness before deployment.
             {% endif %}
-          </p>
+          </div>
         </div>
 
         <div class="panel-head">
-          <p class="eyebrow mb-1">Live Filters</p>
-          <h2 class="panel-title">Update the scenario</h2>
-          <p class="panel-text mb-0">Results auto-refresh as you change values.</p>
+          <span class="eyebrow mb-1">Live Conditions</span>
+          <h2 class="panel-title">Scenario Filters</h2>
+          <p class="panel-text mb-0">Adjust criteria to re-calculate rankings in real time.</p>
         </div>
 
         <form id="recommendForm" method="post" action="{{ url_for('web.recommend') }}" class="control-form">
           <div class="field-block">
-            <label class="form-label" for="num_people">People needing shelter</label>
-            <input id="num_people" type="number" min="1" name="num_people" class="form-control form-control-lg" value="{{ data.filters.num_people if data else 1 }}" required>
+            <label class="form-label" for="num_people">👥 People Needing Shelter</label>
+            <input id="num_people" type="number" min="1" name="num_people" class="form-control" value="{{ data.filters.num_people if data else 1 }}" required>
           </div>
 
           <div class="field-block">
-            <label class="form-label" for="distance_level">Travel distance</label>
-            <select id="distance_level" name="distance_level" class="form-select form-select-lg">
+            <label class="form-label" for="distance_level">🚗 Max Travel Distance</label>
+            <select id="distance_level" name="distance_level" class="form-select">
               {% for option in choices.distance_level %}
               <option value="{{ option }}" {% if data and data.filters.distance_level == option %}selected{% endif %}>{{ option|title }}</option>
               {% endfor %}
@@ -102,8 +106,8 @@
           </div>
 
           <div class="field-block">
-            <label class="form-label" for="accessibility_required">Accessibility needed</label>
-            <select id="accessibility_required" name="accessibility_required" class="form-select form-select-lg">
+            <label class="form-label" for="accessibility_required">♿ Accessibility Needed</label>
+            <select id="accessibility_required" name="accessibility_required" class="form-select">
               {% for option in choices.accessibility_required %}
               <option value="{{ option }}" {% if data and data.filters.accessibility_required == option %}selected{% endif %}>{{ option|title }}</option>
               {% endfor %}
@@ -112,7 +116,7 @@
 
           <div class="field-grid">
             <div class="field-block">
-              <label class="form-label" for="elevation_input">Current elevation risk</label>
+              <label class="form-label" for="elevation_input">⛰️ Elevation Risk</label>
               <select id="elevation_input" name="elevation_input" class="form-select">
                 {% for option in choices.elevation_input %}
                 <option value="{{ option }}" {% if data and data.filters.elevation_input == option %}selected{% endif %}>{{ option|title }}</option>
@@ -121,7 +125,7 @@
             </div>
 
             <div class="field-block">
-              <label class="form-label" for="proximity_input">Proximity to water</label>
+              <label class="form-label" for="proximity_input">🌊 Water Proximity</label>
               <select id="proximity_input" name="proximity_input" class="form-select">
                 {% for option in choices.proximity_input %}
                 <option value="{{ option }}" {% if data and data.filters.proximity_input == option %}selected{% endif %}>{{ option|title }}</option>
@@ -131,7 +135,7 @@
           </div>
 
           <div class="field-block">
-            <label class="form-label" for="medical_input">Medical support needed</label>
+            <label class="form-label" for="medical_input">🏥 Medical Support Needed</label>
             <select id="medical_input" name="medical_input" class="form-select">
               {% for option in choices.medical_input %}
               <option value="{{ option }}" {% if data and data.filters.medical_input == option %}selected{% endif %}>{{ option|title }}</option>
@@ -140,20 +144,23 @@
           </div>
 
           <div class="action-row">
-            <button id="submitButton" class="btn btn-signal btn-lg" type="submit">Refresh Recommendations</button>
+            <button id="submitButton" class="btn btn-signal" type="submit">Refresh Recommendations</button>
             <button id="resetButton" class="btn btn-ghost" type="button">Reset</button>
           </div>
         </form>
 
         <div id="statusBanner" class="status-banner{% if error %} is-error{% endif %}">
-          {{ error if error else 'Ready. Edit any field to recompute the shelter ranking.' }}
+          {{ error if error else 'System ready. Modify any filter to auto-calculate scores.' }}
         </div>
       </aside>
 
+      <!-- Dashboard Results Panel -->
       <section id="dashboardPanel" class="dashboard-panel{% if data %} has-data{% else %} is-empty{% endif %}">
         <div class="dashboard-grid">
+          <!-- Top Recommended Shelter Card -->
           <article id="bestMatchCard" class="best-match-card"></article>
 
+          <!-- Summary Analytics Cards -->
           <div class="summary-strip dashboard-detail">
             <article class="summary-card">
               <span class="summary-label">Shelters Found</span>
@@ -168,26 +175,28 @@
               <strong class="summary-value text-capitalize" id="summaryAccessibility">-</strong>
             </article>
             <article class="summary-card">
-              <span class="summary-label">Dataset Rows</span>
+              <span class="summary-label">Dataset Records</span>
               <strong class="summary-value" id="summaryDatasetCount">{{ dataset_info.record_count if dataset_info else 0 }}</strong>
             </article>
           </div>
 
+          <!-- Ranked Shelter List -->
           <section class="results-card dashboard-detail">
             <div class="section-head">
               <div>
-                <p class="eyebrow mb-1">Ranked Output</p>
-                <h3 class="section-title">Shelter ranking</h3>
+                <span class="eyebrow mb-1">Ranked Output</span>
+                <h3 class="section-title">Shelter Suitability Rankings</h3>
               </div>
             </div>
             <div id="resultsList" class="results-list"></div>
           </section>
 
+          <!-- Score Bar Chart -->
           <section class="chart-card dashboard-detail">
             <div class="section-head">
               <div>
-                <p class="eyebrow mb-1">Comparison</p>
-                <h3 class="section-title">Suitability scores</h3>
+                <span class="eyebrow mb-1">Score Analytics</span>
+                <h3 class="section-title">Shelter Score Comparison</h3>
               </div>
             </div>
             <div class="chart-frame">
@@ -195,11 +204,12 @@
             </div>
           </section>
 
+          <!-- User Preference Radar Chart -->
           <section class="chart-card dashboard-detail">
             <div class="section-head">
               <div>
-                <p class="eyebrow mb-1">Input Profile</p>
-                <h3 class="section-title">Fuzzy scale view</h3>
+                <span class="eyebrow mb-1">Input Profile</span>
+                <h3 class="section-title">Fuzzy Preference Profile</h3>
               </div>
             </div>
             <div class="chart-frame">
@@ -207,11 +217,12 @@
             </div>
           </section>
 
+          <!-- Geospatial Map View -->
           <section class="map-card dashboard-detail">
             <div class="section-head">
               <div>
-                <p class="eyebrow mb-1">Geo View</p>
-                <h3 class="section-title">Shelter map</h3>
+                <span class="eyebrow mb-1">Geospatial Intelligence</span>
+                <h3 class="section-title">Interactive Shelter Map</h3>
               </div>
             </div>
             <div id="map"></div>
