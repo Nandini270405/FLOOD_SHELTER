@@ -13,19 +13,24 @@ def _build_service():
 @web_bp.route("/", methods=["GET"])
 def home():
     service = _build_service()
-    data = service.recommend(
-        num_people=1,
-        distance_level="medium",
-        accessibility_required="moderate",
-        elevation_input="medium",
-        proximity_input="moderate",
-        medical_input="basic",
-    )
+    try:
+        data = service.recommend(
+            num_people=1,
+            distance_level="medium",
+            accessibility_required="moderate",
+            elevation_input="medium",
+            proximity_input="moderate",
+            medical_input="basic",
+        )
+    except Exception as exc:
+        current_app.logger.warning(f"Initial recommendation load fallback: {exc}")
+        data = None
+
     return render_template(
         "index.html",
         choices=CHOICES,
         data=data,
-        dataset_info=data.get("dataset"),
+        dataset_info=service.get_dataset_info(),
         error=None,
     )
 

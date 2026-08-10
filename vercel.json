@@ -9,12 +9,6 @@
       }
     }
   ],
-  "env": {
-    "FLASK_ENV": "production",
-    "FLASK_APP": "app.py"
-  },
-  "installCommand": "pip install -r requirements.txt",
-  "buildCommand": "bash ./migrate.sh && vercel build",
   "routes": [
     {
       "src": "/(.*)",
