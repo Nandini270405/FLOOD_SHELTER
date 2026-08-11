@@ -1,0 +1,21 @@
+name,capacity,available_beds,distance,accessibility,elevation_level,proximity_to_water,medical_facility,latitude,longitude
+Bhubaneswar Central Disaster Relief Complex,450,210,1.2,easy,high,far,advanced,20.2961,85.8245
+Cuttack Riverside Emergency Shelter,200,65,3.8,moderate,medium,very close,basic,20.4625,85.8828
+Mahanadi High Terrain Refuge Camp,350,180,2.1,easy,high,moderate,advanced,20.4851,85.8752
+Puri Coastal Evacuation Center,500,320,4.5,easy,high,far,advanced,19.8135,85.8312
+Khandagiri Municipal Community Shelter,180,45,2.7,easy,medium,far,basic,20.2588,85.7836
+Rasulgarh Emergency Operations Base,300,120,3.1,easy,high,moderate,advanced,20.3015,85.8621
+Old Town Heritage Relief Hall,120,15,1.5,difficult,low,very close,none,20.2412,85.8335
+Patia Knowledge City Shelter,280,140,5.2,easy,high,far,basic,20.3548,85.8152
+Jaydev Vihar Community Transit Camp,220,85,2.4,easy,medium,moderate,basic,20.2985,85.8192
+Jagamara Relief & Safety Center,160,30,3.6,moderate,medium,moderate,none,20.2642,85.7958
+Nayapalli High Ground Refuge,250,110,1.9,easy,high,far,advanced,20.2912,85.8085
+Saheed Nagar Primary Emergency Hub,320,160,2.8,easy,medium,moderate,basic,20.2885,85.8415
+Mancheswar Industrial Safety Complex,400,240,6.1,moderate,high,far,advanced,20.3298,85.8698
+Baramunda Interstate Evacuation Hub,600,410,3.5,easy,high,far,advanced,20.2785,85.7812
+Jatni Rail Junction Emergency Camp,210,75,8.4,moderate,medium,far,basic,20.1652,85.7058
+Chandra Sekharpur Multipurpose Shelter,310,195,4.8,easy,high,far,advanced,20.3325,85.8162
+Laxmisagar Flood Evacuation Refuge,190,40,2.9,moderate,low,very close,none,20.2721,85.8492
+Unit 6 Capital Disaster Relief Station,380,210,1.7,easy,high,far,advanced,20.2698,85.8215
+Unit 9 Civic Response & Medical Hub,260,95,2.2,easy,medium,moderate,advanced,20.2852,85.8325
+Balianta Flood Rescue Camp,140,25,7.9,difficult,low,very close,none,20.2895,85.9125
