@@ -1,5 +1,5 @@
 from dataclasses import asdict
-from typing import List
+from typing import List, Tuple
 
 from ..db import db
 from ..models.shelter import AppMetadata, Shelter
@@ -7,7 +7,6 @@ from ..models.shelter import AppMetadata, Shelter
 
 class ShelterRepository:
     def __init__(self, _db_path: str):
-        # db_path is ignored in favor of the active SQLAlchemy session
         pass
 
     def fetch_dataset_info(self) -> dict:
@@ -29,13 +28,10 @@ class ShelterRepository:
                 dataset_info["dataset_name"] = metadata.get("dataset_name", dataset_info["dataset_name"])
                 dataset_info["is_demo"] = dataset_info["source_type"] == "demo"
         except Exception:
-            # Table might not exist yet, fallback to demo defaults
             pass
 
         try:
             dataset_info["record_count"] = Shelter.query.count()
-            
-            # If no metadata, try to guess if it's demo
             if dataset_info["source_type"] == "demo" and dataset_info["record_count"] > 0:
                 demo_count = Shelter.query.filter(Shelter.name.like("Shelter %")).count()
                 dataset_info["is_demo"] = demo_count == dataset_info["record_count"]
@@ -47,13 +43,35 @@ class ShelterRepository:
 
         return dataset_info
 
-    def fetch_candidates(self, min_beds: int, max_distance: float) -> List[dict]:
+    def fetch_candidates(self, min_beds: int, max_distance: float) -> Tuple[List[dict], bool]:
         if Shelter is None:
-            return []
+            return [], False
         
-        shelters = (
-            Shelter.query.filter(Shelter.available_beds >= min_beds, Shelter.distance <= max_distance)
-            .order_by(Shelter.distance.asc())
-            .all()
-        )
-        return [asdict(shelter.to_record()) for shelter in shelters]
+        try:
+            # 1. Try exact requested constraints (min beds & max distance)
+            strict_shelters = (
+                Shelter.query.filter(Shelter.available_beds >= min_beds, Shelter.distance <= max_distance)
+                .order_by(Shelter.distance.asc())
+                .all()
+            )
+            if strict_shelters:
+                return [asdict(s.to_record()) for s in strict_shelters], False
+
+            # 2. Expanded search: Relax max_distance constraint
+            expanded_shelters = (
+                Shelter.query.filter(Shelter.available_beds >= min_beds)
+                .order_by(Shelter.distance.asc())
+                .all()
+            )
+            if expanded_shelters:
+                return [asdict(s.to_record()) for s in expanded_shelters], True
+
+            # 3. Fallback search: Any available beds
+            all_shelters = (
+                Shelter.query.filter(Shelter.available_beds > 0)
+                .order_by(Shelter.distance.asc())
+                .all()
+            )
+            return [asdict(s.to_record()) for s in all_shelters], True
+        except Exception:
+            return [], False

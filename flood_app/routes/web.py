@@ -45,21 +45,30 @@ def recommend():
             "index.html",
             choices=CHOICES,
             data=None,
+            dataset_info=_build_service().get_dataset_info(),
             error="Enter a valid number of people (>= 1).",
         )
 
-    data = _build_service().recommend(
-        num_people=num_people,
-        distance_level=payload.get("distance_level", "medium"),
-        accessibility_required=payload.get("accessibility_required", "moderate"),
-        elevation_input=payload.get("elevation_input", "medium"),
-        proximity_input=payload.get("proximity_input", "moderate"),
-        medical_input=payload.get("medical_input", "basic"),
-    )
+    service = _build_service()
+    error_msg = None
+    try:
+        data = service.recommend(
+            num_people=num_people,
+            distance_level=payload.get("distance_level", "medium"),
+            accessibility_required=payload.get("accessibility_required", "moderate"),
+            elevation_input=payload.get("elevation_input", "medium"),
+            proximity_input=payload.get("proximity_input", "moderate"),
+            medical_input=payload.get("medical_input", "basic"),
+        )
+    except Exception as exc:
+        current_app.logger.error(f"Recommendation calculation error: {exc}", exc_info=True)
+        data = None
+        error_msg = "Could not compute recommendations for this input scenario."
+
     return render_template(
         "index.html",
         choices=CHOICES,
         data=data,
-        dataset_info=data.get("dataset"),
-        error=None,
+        dataset_info=data.get("dataset") if data else service.get_dataset_info(),
+        error=error_msg,
     )

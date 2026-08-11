@@ -46,7 +46,7 @@ function setStatus(message, kind = "idle") {
 
   banner.textContent = message;
   banner.classList.remove("is-loading", "is-error");
-  if (kind === "loading") banner.classList.add("is-loading");
+  if (kind === "loading" || kind === "warning") banner.classList.add("is-loading");
   if (kind === "error") banner.classList.add("is-error");
 }
 
@@ -73,29 +73,34 @@ function renderBestMatch(best) {
   if (!best) {
     node.innerHTML = `
       <div class="empty-state">
-        <strong>No best match yet.</strong>
-        <div class="mt-2">Change the filters to search for shelters.</div>
+        <strong>No shelters available.</strong>
+        <div class="mt-2">Adjust criteria to find available shelters.</div>
       </div>
     `;
     return;
   }
 
+  const isAltBadge = best.is_alternative
+    ? `<span class="tag-pill" style="background: rgba(255, 183, 3, 0.18); color: #ffd000;">⚠️ Alternative Recommendation (Farther / Capacity Limit)</span>`
+    : `<span class="tag-pill" style="background: rgba(16, 185, 129, 0.18); color: #34d399;">✓ Direct Scenario Match</span>`;
+
   node.innerHTML = `
     <div class="best-header">
       <div>
-        <p class="eyebrow mb-1">Best Match</p>
+        <p class="eyebrow mb-1">Top Ranked Match</p>
         <h2 class="best-title">${best.name}</h2>
         <div class="best-meta">
-          <span class="meta-pill">${best.distance} km away</span>
-          <span class="meta-pill">${best.available_beds} beds free</span>
-          <span class="meta-pill">${titleCase(best.accessibility)} accessibility</span>
+          <span class="meta-pill">📍 ${best.distance} km away</span>
+          <span class="meta-pill">🛏️ ${best.available_beds} beds available</span>
+          <span class="meta-pill">♿ ${titleCase(best.accessibility)} access</span>
         </div>
       </div>
       <div class="best-score">${best.score}</div>
     </div>
     <div class="best-tags">
+      ${isAltBadge}
       <span class="tag-pill">Elevation: ${titleCase(best.elevation_level)}</span>
-      <span class="tag-pill">Water proximity: ${titleCase(best.proximity_to_water)}</span>
+      <span class="tag-pill">Water Proximity: ${titleCase(best.proximity_to_water)}</span>
       <span class="tag-pill">Medical: ${titleCase(best.medical_facility)}</span>
     </div>
   `;
@@ -114,8 +119,8 @@ function renderResults(recommendations) {
   if (!recommendations || recommendations.length === 0) {
     node.innerHTML = `
       <div class="empty-state">
-        <strong>No shelters matched this combination.</strong>
-        <div class="mt-2">Try increasing distance or lowering the accessibility requirement.</div>
+        <strong>No shelters found nearby.</strong>
+        <div class="mt-2">Try increasing travel distance or bed capacity requirements.</div>
       </div>
     `;
     return;
@@ -136,9 +141,14 @@ function renderResults(recommendations) {
             <div class="score-fill" style="width: ${shelter.score}%"></div>
           </div>
           <div class="result-line">
-            ${shelter.distance} km away, ${shelter.available_beds} beds available, ${titleCase(shelter.accessibility)} access
+            📍 ${shelter.distance} km away, 🛏️ ${shelter.available_beds} beds free, ♿ ${titleCase(shelter.accessibility)} access
           </div>
           <div class="result-tags">
+            ${
+              shelter.is_alternative
+                ? '<span class="mini-tag" style="background: rgba(255, 183, 3, 0.18); color: #ffd000; font-weight: 700;">⚠️ Alternative Recommendation</span>'
+                : '<span class="mini-tag" style="background: rgba(16, 185, 129, 0.15); color: #34d399; font-weight: 700;">✓ Direct Match</span>'
+            }
             <span class="mini-tag">Elevation ${titleCase(shelter.elevation_level)}</span>
             <span class="mini-tag">Water ${titleCase(shelter.proximity_to_water)}</span>
             <span class="mini-tag">Medical ${titleCase(shelter.medical_facility)}</span>
@@ -180,14 +190,10 @@ function buildScoreChart(recommendations) {
       datasets: [
         {
           data: recommendations.map((item) => item.score),
-          borderRadius: 10,
-          backgroundColor: [
-            "#c96c32",
-            "#dd8f4b",
-            "#f0b363",
-            "#2a8a7d",
-            "#1d5b52",
-          ],
+          borderRadius: 8,
+          backgroundColor: recommendations.map((item) =>
+            item.is_alternative ? "#ffb703" : "#00f2fe"
+          ),
         },
       ],
     },
@@ -199,14 +205,14 @@ function buildScoreChart(recommendations) {
       },
       scales: {
         x: {
-          ticks: { color: "#5d655f" },
+          ticks: { color: "#94a3b8" },
           grid: { display: false },
         },
         y: {
           beginAtZero: true,
           max: 100,
-          ticks: { color: "#5d655f" },
-          grid: { color: "rgba(24, 33, 38, 0.08)" },
+          ticks: { color: "#94a3b8" },
+          grid: { color: "rgba(56, 189, 248, 0.12)" },
         },
       },
     },
@@ -245,11 +251,11 @@ function buildInputChart(inputs) {
             inputs.medical || 0,
           ],
           fill: true,
-          backgroundColor: "rgba(29, 91, 82, 0.16)",
-          borderColor: "#1d5b52",
-          pointBackgroundColor: "#c96c32",
-          pointBorderColor: "#fff8ef",
-          pointRadius: 4,
+          backgroundColor: "rgba(0, 242, 254, 0.16)",
+          borderColor: "#00f2fe",
+          pointBackgroundColor: "#ffb703",
+          pointBorderColor: "#050b14",
+          pointRadius: 5,
         },
       ],
     },
@@ -265,12 +271,12 @@ function buildInputChart(inputs) {
           suggestedMax: 10,
           ticks: {
             stepSize: 2,
-            color: "#5d655f",
+            color: "#94a3b8",
             backdropColor: "transparent",
           },
-          grid: { color: "rgba(24, 33, 38, 0.08)" },
-          angleLines: { color: "rgba(24, 33, 38, 0.08)" },
-          pointLabels: { color: "#182126" },
+          grid: { color: "rgba(56, 189, 248, 0.14)" },
+          angleLines: { color: "rgba(56, 189, 248, 0.14)" },
+          pointLabels: { color: "#f0f7ff", font: { family: "Outfit", size: 12 } },
         },
       },
     },
@@ -318,8 +324,9 @@ function buildMap(recommendations) {
   const bounds = [];
   recommendations.forEach((item, index) => {
     const marker = L.marker([item.lat, item.lng]).addTo(state.markerLayer);
+    const tagText = item.is_alternative ? "⚠️ Alternative Recommendation" : "✓ Direct Match";
     marker.bindPopup(
-      `<strong>${item.name}</strong><br/>Rank #${index + 1}<br/>Score: ${item.score}<br/>Distance: ${item.distance} km<br/>Beds: ${item.available_beds}`
+      `<strong>${item.name}</strong><br/>${tagText}<br/>Rank #${index + 1}<br/>Score: ${item.score}<br/>Distance: ${item.distance} km<br/>Beds Free: ${item.available_beds}`
     );
     bounds.push([item.lat, item.lng]);
   });
@@ -342,6 +349,12 @@ function renderDashboard(data) {
   buildScoreChart(data?.recommendations || []);
   buildInputChart(data?.inputs_numeric || null);
   buildMap(data?.recommendations || []);
+
+  if (data?.summary?.notice_message) {
+    setStatus(data.summary.notice_message, "warning");
+  } else if (data?.recommendations?.length) {
+    setStatus(`Updated ${data.recommendations.length} shelter recommendations.`, "idle");
+  }
 }
 
 function serializeForm(form) {
@@ -388,11 +401,6 @@ async function fetchRecommendations(form) {
     }
 
     renderDashboard(data);
-    if (data.recommendations?.length) {
-      setStatus(`Updated ${data.recommendations.length} shelter recommendations.`, "idle");
-    } else {
-      setStatus("No shelters matched the current filters.", "idle");
-    }
   } catch (error) {
     console.error("Recommendation error:", error);
     setStatus(error.message, "error");

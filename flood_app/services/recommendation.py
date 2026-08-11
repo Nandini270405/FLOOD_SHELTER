@@ -19,7 +19,15 @@ class RecommendationService:
         self.fuzzy_engine = FuzzyRecommenderEngine()
 
     def get_dataset_info(self) -> Dict:
-        return self.repository.fetch_dataset_info()
+        try:
+            return self.repository.fetch_dataset_info()
+        except Exception:
+            return {
+                "source_type": "demo",
+                "dataset_name": "Built-in demo shelters",
+                "record_count": 0,
+                "is_demo": True,
+            }
 
     def recommend(
         self,
@@ -43,27 +51,34 @@ class RecommendationService:
         medical_num = MEDICAL_MAP.get(medical_input, 5)
         dataset_info = self.get_dataset_info()
 
-        rows = self.repository.fetch_candidates(num_people, max_distance)
+        rows, is_expanded_search = self.repository.fetch_candidates(num_people, max_distance)
         recommendations: List[Dict] = []
+        exact_matches = 0
 
         for row in rows:
-            shelter_accessibility = row["accessibility"].lower()
-            if not _accessibility_matches(shelter_accessibility, accessibility_required):
-                continue
+            shelter_accessibility = (row.get("accessibility") or "moderate").lower()
+            elevation_level = (row.get("elevation_level") or "medium").lower()
+            proximity_to_water = (row.get("proximity_to_water") or "moderate").lower()
+            medical_facility = (row.get("medical_facility") or "basic").lower()
+            shelter_distance = float(row.get("distance") if row.get("distance") is not None else 20.0)
+            beds = int(row.get("available_beds") if row.get("available_beds") is not None else 0)
 
-            elevation_level = row["elevation_level"].lower()
-            proximity_to_water = row["proximity_to_water"].lower()
-            medical_facility = row["medical_facility"].lower()
+            # Check if this shelter meets exact requested distance, accessibility, and bed count
+            meets_distance = shelter_distance <= max_distance
+            meets_access = _accessibility_matches(shelter_accessibility, accessibility_required)
+            meets_beds = beds >= num_people
+
+            is_exact = meets_distance and meets_access and meets_beds
+            if is_exact:
+                exact_matches += 1
 
             access_num = int(np.clip(ACCESS_MAP.get(shelter_accessibility, 5), 0, 10))
             elevation_score = int(np.clip(ELEVATION_MAP.get(elevation_level, 5), 0, 10))
             proximity_score = int(np.clip(PROXIMITY_MAP.get(proximity_to_water, 5), 0, 10))
             medical_score = int(np.clip(MEDICAL_MAP.get(medical_facility, 5), 0, 10))
 
-            # Universe for capacity is [0, 100], distance is [0, 20]
-            beds = row["available_beds"] if row["available_beds"] is not None else 0
             usable_capacity = int(np.clip(min(max(beds, num_people), 100), 0, 100))
-            dist_val = float(np.clip(row["distance"] if row["distance"] is not None else 20, 0, 20))
+            dist_val = float(np.clip(shelter_distance, 0, 20))
 
             try:
                 score_val = self.fuzzy_engine.compute_suitability(
@@ -82,28 +97,34 @@ class RecommendationService:
 
             recommendations.append(
                 {
-                    "name": row["name"],
-                    "capacity": row["capacity"],
-                    "available_beds": row["available_beds"],
-                    "distance": row["distance"],
-                    "accessibility": row["accessibility"],
-                    "elevation_level": row["elevation_level"],
-                    "proximity_to_water": row["proximity_to_water"],
-                    "medical_facility": row["medical_facility"],
+                    "name": row.get("name", "Unknown Shelter"),
+                    "capacity": row.get("capacity", 0),
+                    "available_beds": beds,
+                    "distance": shelter_distance,
+                    "accessibility": row.get("accessibility", "moderate"),
+                    "elevation_level": row.get("elevation_level", "medium"),
+                    "proximity_to_water": row.get("proximity_to_water", "moderate"),
+                    "medical_facility": row.get("medical_facility", "basic"),
                     "score": round(score, 2),
                     "distance_match": distance_level,
                     "accessibility_match": shelter_accessibility,
-                    "matches_requested_accessibility": _accessibility_matches(
-                        shelter_accessibility, accessibility_required
-                    ),
+                    "matches_requested_accessibility": meets_access,
+                    "is_alternative": not is_exact,
                     "available_capacity_score": usable_capacity,
-                    "lat": row["latitude"] if row["latitude"] is not None else 20.3000,
-                    "lng": row["longitude"] if row["longitude"] is not None else 85.8200,
+                    "lat": row.get("latitude") if row.get("latitude") is not None else 20.3000,
+                    "lng": row.get("longitude") if row.get("longitude") is not None else 85.8200,
                 }
             )
 
         recommendations.sort(key=lambda item: item["score"], reverse=True)
         best = recommendations[0] if recommendations else None
+
+        has_notice = exact_matches == 0 or is_expanded_search
+        notice_message = (
+            f"No exact shelters found within your preferred range ({distance_level.title()}, {accessibility_required.title()} access, {num_people} beds). Displaying alternative recommendations below."
+            if has_notice and recommendations
+            else None
+        )
 
         return {
             "filters": {
@@ -126,6 +147,9 @@ class RecommendationService:
             "dataset": dataset_info,
             "summary": {
                 "count": len(recommendations),
+                "exact_matches": exact_matches,
+                "is_expanded_search": is_expanded_search or (exact_matches == 0),
+                "notice_message": notice_message,
                 "requested_accessibility": accessibility_required,
                 "max_distance_km": max_distance,
             },
